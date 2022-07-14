@@ -10,4 +10,6 @@ WORKDIR /home/edgecontroller
 
 EXPOSE 61208
 
+COPY glances.conf /etc/glances/glances.conCOPY glances.conf /etc/glances/glances.conff
+
 ENTRYPOINT glances -w 
