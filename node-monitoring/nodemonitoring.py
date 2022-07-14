@@ -1,23 +1,17 @@
 import requests
 import os 
-import logging
 import time
-        
-# create logger
-logger = logging.getLogger('logger')
-logger.setLevel(logging.DEBUG)
+import json
+from utils.infotreatment import info_treatment
+from utils.logger import set_logger
 
-# create console handler and set level to debug
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-
-# add ch to logger
-logger.addHandler(ch)
 
 # Set server constants
 PROTOCOL = 'http://'
+BASE_RESOURCE = '/api/3/'
+RESOURCE_LIST = ['cpu', 'mem', 'alert', 'load', 'processlist']
 
+logger = set_logger()
 
 ## Node Operations
 def check_status(url):
@@ -30,20 +24,25 @@ def check_status(url):
         logger.error(e)
         return False
 
-def get_info(url):
-    RESOURCE = "/api/3/cpu"
+def get_info(url, node):
     
-    response = requests.get(url=url+RESOURCE).content
-    
-    logger.info(response)
+    json_resource_list = []
 
-    return response
+    for resource in RESOURCE_LIST:
+        response = requests.get(url=url+BASE_RESOURCE+resource).content
+        json_resource_list.append(response)
+        logger.info(f'{node} resource {resource} info: ' + str(response))
+
+    return json_resource_list
+
+
+
 
 ## Program execution
 if __name__ == "__main__":
     
     # Open the nodes file and fill a list with the different nodes to monitor
-    with open('./nodes.txt', 'r') as nodes:
+    with open('./node-monitoring/nodes.txt', 'r') as nodes:
         nodelist = []
         for node in nodes.readlines():
             node = node.replace('\n','')
@@ -65,23 +64,28 @@ if __name__ == "__main__":
                     
                     logger.info(f'{node} is live again, getting node info')
                     down_nodes.remove(node)
-                    try:
-                        get_info(URL)
-                        #TODO: Treat JSON info somehow
                     
+                    # Node is now live, get its information
+                    try:
+                        # node_info is an array of jsons
+                        node_info = get_info(URL, node)
+
+                        info_treatment(node_info, node, logger)
+
                     except requests.exceptions.ConnectionError as e:    
                         ALIVE = check_status(URL)
                         if not ALIVE:
                             logger.info(f'{node} server is down, reconnecting...')
                             down_nodes.append(node)
 
-
             # For alive nodes, get the node info
             else:
                 try:
-                    get_info(URL)
-                    #TODO: Treat JSON info somehow
-                
+                    # node_info is an array of jsons
+                    node_info = get_info(URL, node)
+
+                    info_treatment(node_info, node, logger)
+
                 except requests.exceptions.ConnectionError as e:    
                     ALIVE = check_status(URL)
                     if not ALIVE:
