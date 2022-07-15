@@ -1,31 +1,47 @@
 import requests
-import os 
+import os
 import time
-import json
+import yaml
 from utils.infotreatment import info_treatment
 from utils.logger import set_logger
-
+from utils.actions import actions
 
 # Set server constants
 PROTOCOL = 'http://'
 BASE_RESOURCE = '/api/3/'
-RESOURCE_LIST = ['cpu', 'mem', 'alert', 'load', 'processlist']
+RESOURCE_LIST = ['cpu', 'mem', 'alert', 'load']
 
 logger = set_logger()
 
-## Node Operations
-def check_status(url):
+
+def load_config():
+    # Starting configuration
+    with open('./node-monitoring/nodes.yaml', 'r') as configfile:
+        try:
+            logger.info('Reading configuration file nodes.yaml')
+            nodeconfig = yaml.safe_load(configfile)
+
+        except yaml.YAMLError as e:
+            logger.error(f'Configuration file could not be read: {e}')
+    return nodeconfig
+
+
+# Node Operations
+
+
+def check_status(url, node):
     try:
         requests.get(url=url)
         return True
 
     except requests.exceptions.ConnectionError as e:
-        logger.info("The connection was refused, is the node alive?")
+        logger.info(f'The connection was refused, is the node {node} alive?')
         logger.error(e)
         return False
 
-def get_info(url, node):
-    
+
+def request_node_info(url, node):
+
     json_resource_list = []
 
     for resource in RESOURCE_LIST:
@@ -36,60 +52,73 @@ def get_info(url, node):
     return json_resource_list
 
 
+def process_info(URL, hostname):
+
+    try:
+        # node_info is an array of jsons
+        node_info = request_node_info(URL, hostname)
+
+        actions(info_treatment(node_info, hostname, logger))
+
+    except requests.exceptions.ConnectionError as e:
+        ALIVE = check_status(URL, hostname)
+        if not ALIVE:
+            logger.info(f'{hostname} server is down, reconnecting...')
+            down_nodes.append(hostname)
 
 
-## Program execution
+# Program execution
 if __name__ == "__main__":
-    
-    # Open the nodes file and fill a list with the different nodes to monitor
-    with open('./node-monitoring/nodes.txt', 'r') as nodes:
-        nodelist = []
-        for node in nodes.readlines():
-            node = node.replace('\n','')
-            nodelist.append(node)
-            logger.info(f'Adding new node to monitor: {node}')
 
+    # Open the nodes file and fill a list with the different nodes to monitor
+    logger.info('Opening configuration file nodes.yaml')
+
+    # Process config file
+    logger.info('Loading node configuration...')
+    nodeconfig = load_config()
+
+    # Parse YAML config into python objects
+    hostnamelist = []
+    node_endpoints = {}
+
+    for node in nodeconfig:
+        # List of hostnames
+        hostnamelist.append(node["node"]["hostname"])
+
+        # Endpoint of the node
+        endpoint = str(node["node"]["IP"]) + ":" + str(node["node"]["port"])
+
+        # Dictionary {"hostname":"endpoint"}
+        node_endpoints[node["node"]["hostname"]] = endpoint
+
+        logger.info(
+            f'Node {node["node"]["hostname"]} configuration successfully loaded!')
+
+    logger.info('All nodes successfully loaded!')
+
+    # Empty list of down nodes to be updated later
     down_nodes = []
 
     while True:
 
-        for node in nodelist:
-            
-            URL=f'{PROTOCOL}{node}'
+        for hostname in hostnamelist:
+
+            ipport = node_endpoints[hostname]
+            URL = f'{PROTOCOL}{ipport}'
 
             # For down nodes, check if still down
-            if node in down_nodes:
+            if hostname in down_nodes:
                 # Update the list of down nodes
-                if check_status(URL):
-                    
-                    logger.info(f'{node} is live again, getting node info')
-                    down_nodes.remove(node)
-                    
+                if check_status(URL, hostname):
+
+                    logger.info(f'{hostname} is live again, getting node info')
+                    down_nodes.remove(hostname)
+
                     # Node is now live, get its information
-                    try:
-                        # node_info is an array of jsons
-                        node_info = get_info(URL, node)
-
-                        info_treatment(node_info, node, logger)
-
-                    except requests.exceptions.ConnectionError as e:    
-                        ALIVE = check_status(URL)
-                        if not ALIVE:
-                            logger.info(f'{node} server is down, reconnecting...')
-                            down_nodes.append(node)
+                    process_info(URL, hostname)
 
             # For alive nodes, get the node info
             else:
-                try:
-                    # node_info is an array of jsons
-                    node_info = get_info(URL, node)
-
-                    info_treatment(node_info, node, logger)
-
-                except requests.exceptions.ConnectionError as e:    
-                    ALIVE = check_status(URL)
-                    if not ALIVE:
-                        logger.info(f'{node} server is down, reconnecting...')
-                        down_nodes.append(node)
+                process_info(URL, hostname)
 
         time.sleep(5)

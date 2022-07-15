@@ -54,12 +54,14 @@ def info_treatment(node_info, node, logger):
     MEM = parsed_node_info[1]
     ALERTS = parsed_node_info[2]
     LOAD = parsed_node_info[3]
-    PROCESSES = parsed_node_info[4]
+    #PROCESSES = parsed_node_info[4]
 
     logger.info(f'{node} information:\n'+
-                f'Total CPU usage: {CPU["total"]}\n'+
-                f'Load avg 1 min: {LOAD["min1"]}\n'+
+                f'Total CPU usage: {CPU["total"]} %\n'+
+                f'Load avg 1 min: {LOAD["min1"]} %\n'+
                 f'Total memory: {MEM["total"] * 1E-9 } Gb\n'+
                 f'Available memory: {MEM["available"] * 1E-9 } Gb\n'+
-                f'Total memory usage: {MEM["percent"]}\n'+
+                f'Total memory usage: {MEM["percent"]} %\n'+
                 f'Alerts: {ALERTS}\n')
+
+    return CPU, MEM, ALERTS, LOAD, #PROCESSES
