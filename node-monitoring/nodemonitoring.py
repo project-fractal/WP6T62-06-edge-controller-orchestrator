@@ -5,11 +5,7 @@ import yaml
 from utils.infotreatment import info_treatment
 from utils.logger import set_logger
 from utils.actions import actions
-
-# Set server constants
-PROTOCOL = 'http://'
-BASE_RESOURCE = '/api/3/'
-RESOURCE_LIST = ['cpu', 'mem', 'alert', 'load']
+from utils.constants import RESOURCE_LIST, PROTOCOL, BASE_RESOURCE
 
 logger = set_logger()
 
