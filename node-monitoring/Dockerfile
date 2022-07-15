@@ -9,7 +9,7 @@ WORKDIR /home/edgemonitor
 
 COPY --chown=edgemonitor:edgemonitor utils /home/edgemonitor/utils
 COPY --chown=edgemonitor:edgemonitor requirements.txt /home/edgemonitor/requirements.txt
-COPY --chown=edgemonitor:edgemonitor nodes.txt /home/edgemonitor/nodes.txt
+COPY --chown=edgemonitor:edgemonitor nodes.yaml /home/edgemonitor/node-monitoring/nodes.yaml
 COPY --chown=edgemonitor:edgemonitor nodemonitoring.py /home/edgemonitor/nodemonitoring.py
 
 RUN python3 -m pip install --upgrade pip
