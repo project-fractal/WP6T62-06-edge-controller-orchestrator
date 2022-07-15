@@ -22,7 +22,7 @@ def load_config():
     return nodeconfig
 
 
-# Node Operations
+# Below are the functions that perform node operations
 
 
 def check_status(url, node):
@@ -36,25 +36,25 @@ def check_status(url, node):
         return False
 
 
-def request_node_info(url, node):
+def request_node_info(url, node, resources=RESOURCE_LIST):
 
     json_resource_list = []
 
-    for resource in RESOURCE_LIST:
+    # Check if the YAML contains custom resources to monitor, else monitor all supported resources
+    for resource in resources:
         response = requests.get(url=url+BASE_RESOURCE+resource).content
         json_resource_list.append(response)
-        logger.info(f'{node} resource {resource} info: ' + str(response))
 
     return json_resource_list
 
 
-def process_info(URL, hostname):
-
+def process_info(URL, hostname, resources=RESOURCE_LIST):
     try:
         # node_info is an array of jsons
-        node_info = request_node_info(URL, hostname)
+        node_info = request_node_info(URL, hostname, resources)
 
-        actions(info_treatment(node_info, hostname, logger))
+        actions(hostname, info_treatment(
+            node_info, hostname, resources, logger))
 
     except requests.exceptions.ConnectionError as e:
         ALIVE = check_status(URL, hostname)
@@ -76,6 +76,7 @@ if __name__ == "__main__":
     # Parse YAML config into python objects
     hostnamelist = []
     node_endpoints = {}
+    node_resources = {}
 
     for node in nodeconfig:
         # List of hostnames
@@ -89,6 +90,11 @@ if __name__ == "__main__":
 
         logger.info(
             f'Node {node["node"]["hostname"]} configuration successfully loaded!')
+
+        # Dictionary {"hostname":["resource1", "resource2", ...]}
+        if 'resources' in node['node'].keys():
+            node_resources[node['node']
+                           ['hostname']] = node['node']['resources']
 
     logger.info('All nodes successfully loaded!')
 
@@ -111,10 +117,16 @@ if __name__ == "__main__":
                     down_nodes.remove(hostname)
 
                     # Node is now live, get its information
-                    process_info(URL, hostname)
+                    if node_resources[hostname] is None:
+                        process_info(URL, hostname)
+                    else:
+                        process_info(URL, hostname, node_resources[hostname])
 
             # For alive nodes, get the node info
             else:
-                process_info(URL, hostname)
+                if hostname not in node_resources.keys():
+                    process_info(URL, hostname)
+                else:
+                    process_info(URL, hostname, node_resources[hostname])
 
         time.sleep(5)
