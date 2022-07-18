@@ -74,6 +74,6 @@ def info_treatment(node_info, node, resources, logger):
 
         except IndexError:
             logger.warn(
-                f'Resource {resource_name} nor being monitored for node {node}')
+                f'Resource {resource_name} not being monitored for node {node}')
 
     return parsed_node_info  # PROCESSES
