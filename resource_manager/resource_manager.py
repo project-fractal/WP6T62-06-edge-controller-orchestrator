@@ -171,30 +171,33 @@ if __name__ == '__main__':
                 # actions implements the logic on what decisions and actions to take based on the results.
 
                 # processed_info is a dict: {resource: values}, e.g. {"cpu": {'total': 1.9, ...}, "mem": {'total': 8.1, ...}}
-                try:
+                if hostname in down_nodes:
+                    pass
+                else:
+                    try:
 
-                    if hostname in node_resources.keys() and hostname in node_orchestrators.keys():
+                        if hostname in node_resources.keys() and hostname in node_orchestrators.keys():
 
-                        # taints is a dict of tainted nodes and respective taints {'hostname': 'taint'}
-                        taints = actions(
-                            hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
-                                hostname], resources=node_resources[hostname],
-                            dict_info_json=processed_info, taints=taints, logger=logger)
+                            # taints is a dict of tainted nodes and respective taints {'hostname': 'taint'}
+                            taints = actions(
+                                hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
+                                    hostname], resources=node_resources[hostname],
+                                dict_info_json=processed_info, taints=taints, logger=logger)
 
-                    elif hostname not in node_resources.keys() and hostname in node_orchestrators.keys():
-                        taints = actions(
-                            hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
-                                hostname], resources=RESOURCE_LIST,
-                            dict_info_json=processed_info, taints=taints, logger=logger)
+                        elif hostname not in node_resources.keys() and hostname in node_orchestrators.keys():
+                            taints = actions(
+                                hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
+                                    hostname], resources=RESOURCE_LIST,
+                                dict_info_json=processed_info, taints=taints, logger=logger)
 
-                    elif hostname not in node_orchestrators.keys():
-                        # Nothing to do if node is not orchestrated
-                        logger.info(
-                            f'Node {hostname} is not being orchestrated.')
+                        elif hostname not in node_orchestrators.keys():
+                            # Nothing to do if node is not orchestrated
+                            logger.info(
+                                f'Node {hostname} is not being orchestrated.')
 
-                    logger.info('Tainted nodes: ' + str(taints))
+                        logger.info('Tainted nodes: ' + str(taints))
 
-                except UnsupportedOrchestratorException as e:
-                    logger.error(e)
+                    except UnsupportedOrchestratorException as e:
+                        logger.error(e)
 
         time.sleep(5)
