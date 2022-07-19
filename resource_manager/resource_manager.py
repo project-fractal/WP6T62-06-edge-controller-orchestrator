@@ -83,6 +83,7 @@ if __name__ == '__main__':
     # Parse YAML config into python objects
     hostnamelist = []
     node_endpoints = {}
+    node_ips = {}
     node_resources = {}
     node_orchestrators = {}
 
@@ -95,6 +96,9 @@ if __name__ == '__main__':
 
         # Dictionary {"hostname":"endpoint"}
         node_endpoints[node['node']['hostname']] = endpoint
+
+        # Dictionary {"hostname":"endpoint"}
+        node_ips[node['node']['hostname']] = node['node']['IP']
 
         # Dictionary {"hostname":["resource1", "resource2", ...]}
         if 'resources' in node['node'].keys():
@@ -173,13 +177,13 @@ if __name__ == '__main__':
 
                         # taints is a dict of tainted nodes and respective taints {'hostname': 'taint'}
                         taints = actions(
-                            hostname=hostname, orchestrator=node_orchestrators[
+                            hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
                                 hostname], resources=node_resources[hostname],
                             dict_info_json=processed_info, taints=taints, logger=logger)
 
-                    elif hostname not in node_resources.keys():
+                    elif hostname not in node_resources.keys() and hostname in node_orchestrators.keys():
                         taints = actions(
-                            hostname=hostname, orchestrator=node_orchestrators[
+                            hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
                                 hostname], resources=RESOURCE_LIST,
                             dict_info_json=processed_info, taints=taints, logger=logger)
 
