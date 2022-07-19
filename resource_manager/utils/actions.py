@@ -13,6 +13,11 @@ class UnsupportedOrchestratorException(Exception):
 
 def taint_nodes(taints, hostname, resources, dict_info_json, logger):
 
+    # If all of these are True at the end, untaint the node if tainted.
+    CPU_OK = True
+    MEM_OK = True
+    LOAD_OK = True
+
     for resource in resources:
 
         # Check CPU is not over 80%
@@ -75,15 +80,19 @@ def taint_nodes(taints, hostname, resources, dict_info_json, logger):
 
                     taints[hostname] = 'NoSchedule'
 
-        new_taints = taints
+    # Untaint the node if everything is OK
+    if CPU_OK and MEM_OK and LOAD_OK and hostname in taints.keys():
+        taints.pop(hostname)
+        logger.info(
+            f'Node {hostname} untainted. All parameters are below critical tresholds.')
 
-        return new_taints
+    return taints
 
 
-def create_docker_client(hostname, port):
+def create_docker_client(ip, port):
     # Create the Docker client instance
     try:
-        env = {'DOCKER_HOST': f'{hostname}:{port}'}
+        env = {'DOCKER_HOST': f'{ip}:{port}'}
         docker_client = docker.client.from_env(environment=env)
 
         # Check the server responsiveness
@@ -100,23 +109,10 @@ def create_k8s_client():
     pass
 
 
-def actions(hostname, orchestrator, resources, dict_info_json, taints, logger):
-
-    # If all of these are True at the end, untaint the node if tainted.
-    global CPU_OK
-    global MEM_OK
-    global LOAD_OK
-
-    CPU_OK = True
-    MEM_OK = True
-    LOAD_OK = True
+def actions(hostname, IP, orchestrator, resources, dict_info_json, taints, logger):
 
     new_taints = taint_nodes(
         taints, hostname, resources, dict_info_json, logger)
-
-    # Untaint the node if everything is OK
-    if CPU_OK and MEM_OK and LOAD_OK and hostname in taints.keys():
-        taints.pop(hostname)
 
     # Take actions on K8S and Docker accordingly:
     if orchestrator == 'kubernetes':
@@ -125,7 +121,7 @@ def actions(hostname, orchestrator, resources, dict_info_json, taints, logger):
 
     elif orchestrator == 'docker':
 
-        client = create_docker_client(hostname, port=2376)
+        client = create_docker_client(ip=IP, port=2376)
 
     else:
         raise UnsupportedOrchestratorException(hostname, orchestrator)
