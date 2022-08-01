@@ -1,9 +1,12 @@
+from hashlib import new
+import sys
 import requests
 import time
 import yaml
+from resource_manager.utils.orchestrator import Orchestrator
 from utils.infotreatment import info_treatment
 from utils.logger import set_logger
-from utils.actions import UnsupportedOrchestratorException, actions
+from utils.apply_taints import apply_taints
 from utils.constants import RESOURCE_LIST, PROTOCOL, BASE_RESOURCE
 
 logger = set_logger()
@@ -19,7 +22,6 @@ def load_config():
         except yaml.YAMLError as e:
             logger.error(f'Configuration file could not be read: {e}')
     return nodeconfig
-
 
 # Below are the functions that perform node operations
 
@@ -86,39 +88,64 @@ if __name__ == '__main__':
     node_ips = {}
     node_resources = {}
     node_orchestrators = {}
+    custom_orchestrator = {}
 
     for node in nodeconfig:
-        # List of hostnames
-        hostnamelist.append(node['node']['hostname'])
 
-        # Endpoint of the node
-        endpoint = str(node['node']['IP']) + ':' + str(node['node']['port'])
+        # Get the nodes to monitor parameters
+        if 'node' in node.keys():
 
-        # Dictionary {"hostname":"endpoint"}
-        node_endpoints[node['node']['hostname']] = endpoint
+            # List of hostnames
+            hostnamelist.append(node['node']['hostname'])
 
-        # Dictionary {"hostname":"endpoint"}
-        node_ips[node['node']['hostname']] = node['node']['IP']
+            # Endpoint of the node
+            endpoint = str(node['node']['IP']) + ':' + \
+                str(node['node']['port'])
 
-        # Dictionary {"hostname":["resource1", "resource2", ...]}
-        if 'resources' in node['node'].keys():
-            node_resources[node['node']
-                           ['hostname']] = node['node']['resources']
+            # Dictionary {"hostname":"endpoint"}
+            node_endpoints[node['node']['hostname']] = endpoint
 
-        # Dictionary {"hostname": "orchestrator"}
-        if 'orchestrator' in node['node'].keys():
-            node_orchestrators[node['node']['hostname']
-                               ] = node['node']['orchestrator']
+            # Dictionary {"hostname":"endpoint"}
+            node_ips[node['node']['hostname']] = node['node']['IP']
 
-        logger.info(
-            f'Node {node["node"]["hostname"]} configuration successfully loaded!')
+            # Dictionary {"hostname":["resource1", "resource2", ...]}
+            if 'resources' in node['node'].keys():
+                node_resources[node['node']
+                               ['hostname']] = node['node']['resources']
+
+            # Dictionary {"hostname": "orchestrator"}
+            if 'orchestrator' in node['node'].keys():
+                node_orchestrators[node['node']['hostname']
+                                   ] = node['node']['orchestrator']
+
+            logger.info(
+                f'Node {node["node"]["hostname"]} configuration successfully loaded!')
+
+        # Read the custom-orchestrator node parameters
+        elif 'custom-orchestrator' in node.keys() and not custom_orchestrator:
+            logger.info(
+                f'Loading {node["custom-orchestrator"]["hostname"]} as the custom orchestrator...')
+
+            custom_orchestrator['hostname'] = node['custom-orchestrator']['hostname']
+            custom_orchestrator['IP'] = node['custom-orchestrator']['IP']
+            custom_orchestrator['port'] = node['custom-orchestrator']['port']
+
+            logger.info(
+                f'Node {custom_orchestrator["hostname"]} set as the custom orchestrator')
+
+        # Exit if more than one custom-orchestrator is given
+        elif custom_orchestrator is not None:
+            logger.error(
+                'There can only be one custom orchestrator! Please review the nodes.yaml configuration provided.')
+
+            sys.exit()
 
     logger.info('All nodes successfully loaded!')
 
     # Empty list of down nodes to be updated later
     down_nodes = []
 
-    # First check of the availability of the nodes
+    # First check the availability of the nodes
     for hostname in hostnamelist:
         logger.info(f'Checking availability status of node {hostname}...')
         ipport = node_endpoints[hostname]
@@ -130,8 +157,22 @@ if __name__ == '__main__':
             down_nodes.append(hostname)
             logger.info(f'Node {hostname} is down!')
 
+    if custom_orchestrator:
+        logger.info(
+            f'Checking availability status of node {custom_orchestrator["hostname"]}...')
+
+        URL = f'{PROTOCOL}{custom_orchestrator["IP"]}:{custom_orchestrator["port"]}'
+
+        if check_status(URL, custom_orchestrator['hostname']):
+            logger.info(
+                f'Custom orchestrator node {custom_orchestrator["hostname"]} is alive!')
+        else:
+            logger.info(
+                f'Custom orchestrator node {custom_orchestrator["hostname"]} is down!')
+
     # Nodes start untainted
     taints = {}
+    orchestrator = Orchestrator(custom_orchestrator)
 
     # Start the loop
     while True:
@@ -179,15 +220,13 @@ if __name__ == '__main__':
                         if hostname in node_resources.keys() and hostname in node_orchestrators.keys():
 
                             # taints is a dict of tainted nodes and respective taints {'hostname': 'taint'}
-                            taints = actions(
-                                hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
-                                    hostname], resources=node_resources[hostname],
+                            taints = apply_taints(
+                                hostname=hostname, resources=node_resources[hostname],
                                 dict_info_json=processed_info, taints=taints, logger=logger)
 
                         elif hostname not in node_resources.keys() and hostname in node_orchestrators.keys():
-                            taints = actions(
-                                hostname=hostname, IP=node_ips[hostname], orchestrator=node_orchestrators[
-                                    hostname], resources=RESOURCE_LIST,
+                            taints = apply_taints(
+                                hostname=hostname, resources=RESOURCE_LIST,
                                 dict_info_json=processed_info, taints=taints, logger=logger)
 
                         elif hostname not in node_orchestrators.keys():
@@ -197,7 +236,12 @@ if __name__ == '__main__':
 
                         logger.info('Tainted nodes: ' + str(taints))
 
-                    except UnsupportedOrchestratorException as e:
+                    except Exception as e:
                         logger.error(e)
+
+        # If there is a custom orchestrator, send it the updated list of tainted nodes.
+        if custom_orchestrator:
+
+            orchestrator.send_taints(taints)
 
         time.sleep(5)
