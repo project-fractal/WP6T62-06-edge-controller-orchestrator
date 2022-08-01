@@ -1,2 +1,2 @@
 #! /bin/bash
-docker run -d --network=host nodemonitor
+docker run -d --network=host resource_manager
