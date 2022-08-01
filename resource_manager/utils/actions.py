@@ -62,7 +62,7 @@ def taint_nodes(taints, hostname, resources, dict_info_json, logger):
                     taints[hostname] = 'NoSchedule'
 
         elif resource == 'load':
-            if dict_info_json[resource]['min5'] > 0.8:
+            if dict_info_json[resource]['min5'] > 80:
 
                 LOAD_OK = False
 
