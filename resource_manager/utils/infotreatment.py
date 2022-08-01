@@ -1,13 +1,13 @@
 import json
-from modulefinder import LOAD_CONST
+# Information handling
 
-## Information handling
-def info_treatment(node_info, node, logger):
+
+def info_treatment(node_info, node, resources, logger):
     '''
     This function is in charge of all the operations over the received JSON data from the glances API.
 
     From https://github.com/nicolargo/glances/blob/fieldsdescription/docs/api.rst
-    
+
     CPU INFO        
     total: Sum of all CPU percentages (except idle) (unit is percent)
     system: percent time spent in kernel space. System CPU time is the time spent running code in the Operating System kernel (unit is percent)
@@ -22,7 +22,7 @@ def info_treatment(node_info, node, logger):
     soft_interrupts: number of software interrupts per second. Always set to 0 on Windows and SunOS (unit is percent)
     cpucore: Total number of CPU core (unit is number)
     time_since_update: Number of seconds since last update (unit is seconds)
-    
+
     MEM INFO
     total: Total physical memory available (unit is bytes)
     available: The actual amount of available memory that can be given instantly to processes that request more memory in bytes; this is calculated by summing different memory values depending on the platform (e.g. free + buffers + cached on Linux) and it is supposed to be used to monitor actual memory usage in a cross platform fashion (unit is bytes)
@@ -46,22 +46,34 @@ def info_treatment(node_info, node, logger):
     # Parse the JSON info into Python objects
     parsed_node_info = []
 
-    for node_parameter in node_info:    
+    for node_parameter in node_info:
         parsed_node_info.append(json.loads(node_parameter))
 
     #[0] is CPU, [1] is MEM, [2] is ALERTS, [3] is LOAD, [4] is PROCESSES
-    CPU = parsed_node_info[0]
-    MEM = parsed_node_info[1]
-    ALERTS = parsed_node_info[2]
-    LOAD = parsed_node_info[3]
-    #PROCESSES = parsed_node_info[4]
 
-    logger.info(f'{node} information:\n'+
-                f'Total CPU usage: {CPU["total"]} %\n'+
-                f'Load avg 1 min: {LOAD["min1"]} %\n'+
-                f'Total memory: {MEM["total"] * 1E-9 } Gb\n'+
-                f'Available memory: {MEM["available"] * 1E-9 } Gb\n'+
-                f'Total memory usage: {MEM["percent"]} %\n'+
-                f'Alerts: {ALERTS}\n')
+    i = 0
 
-    return CPU, MEM, ALERTS, LOAD, #PROCESSES
+    for resource_name in resources:
+        try:
+            resource = parsed_node_info[i]
+            i += 1
+
+            if resource_name == 'cpu':
+                logger.info(f'{node} Total CPU usage: {resource["total"]} %')
+            elif resource_name == 'mem':
+                logger.info(
+                    f'{node} Total memory: {resource["total"] * 1E-9 } Gb')
+                logger.info(
+                    f'{node} Available memory: {resource["available"] * 1E-9 } Gb')
+                logger.info(
+                    f'{node} Total memory usage: {resource["percent"]} %')
+            elif resource_name == 'load':
+                logger.info(f'{node} Load avg 1 min: {resource["min1"]} %')
+            elif resource_name == 'alert':
+                logger.info(f'{node} Alerts: {resource}')
+
+        except IndexError:
+            logger.warn(
+                f'Resource {resource_name} not being monitored for node {node}')
+
+    return parsed_node_info  # PROCESSES
