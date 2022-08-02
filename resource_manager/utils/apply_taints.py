@@ -1,16 +1,3 @@
-import kubernetes
-import docker
-import docker.errors
-
-
-class UnsupportedOrchestratorException(Exception):
-    def __init__(self, hostname, orchestrator):
-        self.hostname = hostname
-        self.orchestrator = orchestrator
-        self.message = f'The Orchestrator {orchestrator} for node {hostname} is not supported'
-        super().__init__(self.message)
-
-
 def taint_nodes(taints, hostname, resources, dict_info_json, logger):
 
     # If all of these are True at the end, untaint the node if tainted.
@@ -89,41 +76,9 @@ def taint_nodes(taints, hostname, resources, dict_info_json, logger):
     return taints
 
 
-def create_docker_client(ip, port):
-    # Create the Docker client instance
-    try:
-        env = {'DOCKER_HOST': f'{ip}:{port}'}
-        docker_client = docker.client.from_env(environment=env)
-
-        # Check the server responsiveness
-        docker_client.ping()
-
-        return docker_client
-
-    except docker.errors.APIError as e:
-        print(e)
-
-
-def create_k8s_client():
-    # TODO: Instantiate k8s client
-    pass
-
-
-def actions(hostname, IP, orchestrator, resources, dict_info_json, taints, logger):
+def apply_taints(hostname, resources, dict_info_json, taints, logger):
 
     new_taints = taint_nodes(
         taints, hostname, resources, dict_info_json, logger)
-
-    # Take actions on K8S and Docker accordingly:
-    if orchestrator == 'kubernetes':
-        pass
-        # TODO: Take actions for Kubernetes
-
-    elif orchestrator == 'docker':
-
-        client = create_docker_client(ip=IP, port=2376)
-
-    else:
-        raise UnsupportedOrchestratorException(hostname, orchestrator)
 
     return new_taints
