@@ -95,17 +95,21 @@ def orchestrate():
     for tainted_node in tainted_nodes:
         print(tainted_node)
 
-    # if orchestrator == 'kubernetes':
-    #     create_k8s_client(ip)
-    # # TODO: Take actions for Kubernetes
+    if nodes_config_dict['orchestrator'][tainted_node] == 'kubernetes':
+        create_k8s_client(nodes_config_dict['ips'][tainted_node])
+    # TODO: Take actions for Kubernetes
 
-    # elif orchestrator == 'docker':
-    #     client = create_docker_client(ip=ip, port=2376)
+    elif nodes_config_dict['orchestrator'][tainted_node] == 'kubernetes':
+        client = create_docker_client(
+            ip=nodes_config_dict['ips'][tainted_node], port=2376)
+    # TODO: Take actions for Docker
 
-    # else:
-    #     raise UnsupportedOrchestratorException(hostname, orchestrator)
+    else:
+        raise UnsupportedOrchestratorException(
+            tainted_node, nodes_config_dict['orchestrator'][tainted_node])
 
     return 'Taints and orchestration done'
+
 
     # Program execution
 if __name__ == '__main__':
