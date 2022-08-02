@@ -92,6 +92,12 @@ def load_nodes():
 
     return 'Nodes config saved'
 
+@app.route('/', methods=['GET'])
+def base():
+    logger.info('Base method called')
+
+    return 'Custom Orchestrator API OK'
+
     # Program execution
 if __name__ == '__main__':
 
