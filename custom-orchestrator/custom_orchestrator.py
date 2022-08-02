@@ -9,6 +9,7 @@ from utils.logger import set_logger
 from utils.constants import RESOURCE_LIST, PROTOCOL, API_BASE
 
 logger = set_logger()
+app = Flask(__name__)
 
 
 class UnsupportedOrchestratorException(Exception):
@@ -54,31 +55,44 @@ def create_k8s_client():
     pass
 
 
+# Get nodes information from resource_manager at execution
+
+
+@app.route(API_BASE + 'update_taints', methods=['POST'])
+def orchestrate():
+    logger.info('Getting tainted nodes list from resource-manager...')
+    print(request.form.keys())
+
+    # Take actions on K8S and Docker accordingly:
+    print(request.files)
+
+    return 'Done'
+    hostname = request.files['hostname']
+    ip = request.files['ip']
+    orchestrator = request.files['orchestrator']
+
+    if orchestrator == 'kubernetes':
+        create_k8s_client(ip)
+    # TODO: Take actions for Kubernetes
+
+    elif orchestrator == 'docker':
+        client = create_docker_client(ip=ip, port=2376)
+
+    else:
+        raise UnsupportedOrchestratorException(hostname, orchestrator)
+
+
+@app.route(API_BASE + 'load_nodes', methods=['POST'])
+def load_nodes():
+    logger.info('Getting nodes information from resource-manager...')
+    nodes_test = request.json
+
+    with open(file='./nodes.info', mode='w') as nodesconfig:
+        nodesconfig.write(str(request.json))
+
+    return 'Nodes config saved'
+
     # Program execution
 if __name__ == '__main__':
 
-    # Get nodes information from resource_manager at execution
-    logger.info('Getting nodes information from resource-manager...')
-
-    app = Flask(__name__)
-
-    @app.route(API_BASE + 'update_taints', methods=['POST'])
-    def do_your_thing():
-
-        # Take actions on K8S and Docker accordingly:
-
-        hostname = request.files['hostname']
-        ip = request.files['ip']
-        port = request.files['port']
-        orchestrator = request.files['orchestrator']
-
-        if orchestrator == 'kubernetes':
-            pass
-        # TODO: Take actions for Kubernetes
-
-        elif orchestrator == 'docker':
-
-            client = create_docker_client(ip=ip, port=2376)
-
-        else:
-            raise UnsupportedOrchestratorException(hostname, orchestrator)
+    app.run(host='0.0.0.0', port=9999)
