@@ -14,7 +14,7 @@ class Orchestrator:
 
         URL = 'http://' + str(self.ip) + ':' + str(self.port) + RESOURCE
 
-        requests.post(url=URL, data=taints)
+        requests.post(url=URL, json=taints)
 
     def load_nodes_info(self, **kwargs):
         RESOURCE = '/api/v1/load_nodes'
