@@ -3,7 +3,7 @@ import sys
 import requests
 import time
 import yaml
-from resource_manager.utils.orchestrator import Orchestrator
+from utils.orchestrator import Orchestrator
 from utils.infotreatment import info_treatment
 from utils.logger import set_logger
 from utils.apply_taints import apply_taints
@@ -130,6 +130,9 @@ if __name__ == '__main__':
             custom_orchestrator['IP'] = node['custom-orchestrator']['IP']
             custom_orchestrator['port'] = node['custom-orchestrator']['port']
 
+            # Instantiate the custom_orchestrator object
+            orchestrator = Orchestrator(custom_orchestrator)
+
             logger.info(
                 f'Node {custom_orchestrator["hostname"]} set as the custom orchestrator')
 
@@ -141,6 +144,32 @@ if __name__ == '__main__':
             sys.exit()
 
     logger.info('All nodes successfully loaded!')
+
+    if custom_orchestrator:
+        logger.info(
+            f'Checking availability status of node {custom_orchestrator["hostname"]}...')
+
+        URL = f'{PROTOCOL}{custom_orchestrator["IP"]}:{custom_orchestrator["port"]}'
+
+        if check_status(URL, custom_orchestrator['hostname']):
+            logger.info(
+                f'Custom orchestrator node {custom_orchestrator["hostname"]} is alive!')
+
+            # Send the nodes info to the orchestrator
+            try:
+                if node_resources:
+                    orchestrator.load_nodes_info(
+                        ips=node_ips, orchestrators=node_orchestrators, resources=node_resources)
+                else:
+                    orchestrator.load_nodes_info(
+                        ips=node_ips, orchestrators=node_orchestrators)
+            except Exception as e:
+                logger.error(e)
+                pass
+
+        else:
+            logger.info(
+                f'Custom orchestrator node {custom_orchestrator["hostname"]} is down!')
 
     # Empty list of down nodes to be updated later
     down_nodes = []
@@ -157,24 +186,10 @@ if __name__ == '__main__':
             down_nodes.append(hostname)
             logger.info(f'Node {hostname} is down!')
 
-    if custom_orchestrator:
-        logger.info(
-            f'Checking availability status of node {custom_orchestrator["hostname"]}...')
-
-        URL = f'{PROTOCOL}{custom_orchestrator["IP"]}:{custom_orchestrator["port"]}'
-
-        if check_status(URL, custom_orchestrator['hostname']):
-            logger.info(
-                f'Custom orchestrator node {custom_orchestrator["hostname"]} is alive!')
-        else:
-            logger.info(
-                f'Custom orchestrator node {custom_orchestrator["hostname"]} is down!')
-
     # Nodes start untainted
     taints = {}
-    orchestrator = Orchestrator(custom_orchestrator)
 
-    # Start the loop
+    # Start the main loop
     while True:
 
         for hostname in hostnamelist:
@@ -241,7 +256,10 @@ if __name__ == '__main__':
 
         # If there is a custom orchestrator, send it the updated list of tainted nodes.
         if custom_orchestrator:
-
-            orchestrator.send_taints(taints)
+            URL = f'{PROTOCOL}{custom_orchestrator["IP"]}:{custom_orchestrator["port"]}'
+            if check_status(URL, custom_orchestrator['hostname']):
+                orchestrator.send_taints(taints)
+            else:
+                logger.warning('Custom orchestrator is down...')
 
         time.sleep(5)
