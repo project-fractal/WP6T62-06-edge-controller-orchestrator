@@ -1,4 +1,6 @@
+import json
 import requests
+from ast import literal_eval
 
 import docker
 import kubernetes
@@ -55,34 +57,18 @@ def create_k8s_client():
     pass
 
 
-# Get nodes information from resource_manager at execution
+# API ROUTES
 
+@app.route('/', methods=['GET'])
+# This route is called to check server's availability
+def base():
+    logger.info('Base method called')
 
-@app.route(API_BASE + 'update_taints', methods=['POST'])
-def orchestrate():
-    logger.info('Getting tainted nodes list from resource-manager...')
-    print(request.form.keys())
-
-    # Take actions on K8S and Docker accordingly:
-    print(request.files)
-
-    return 'Done'
-    hostname = request.files['hostname']
-    ip = request.files['ip']
-    orchestrator = request.files['orchestrator']
-
-    if orchestrator == 'kubernetes':
-        create_k8s_client(ip)
-    # TODO: Take actions for Kubernetes
-
-    elif orchestrator == 'docker':
-        client = create_docker_client(ip=ip, port=2376)
-
-    else:
-        raise UnsupportedOrchestratorException(hostname, orchestrator)
+    return 'Custom Orchestrator API OK'
 
 
 @app.route(API_BASE + 'load_nodes', methods=['POST'])
+# This route is called first and load the nodes information into a file to be used later to orchestrate
 def load_nodes():
     logger.info('Getting nodes information from resource-manager...')
     nodes_test = request.json
@@ -92,11 +78,34 @@ def load_nodes():
 
     return 'Nodes config saved'
 
-@app.route('/', methods=['GET'])
-def base():
-    logger.info('Base method called')
 
-    return 'Custom Orchestrator API OK'
+@app.route(API_BASE + 'update_taints', methods=['POST'])
+# Read the nodes.info file and orchestrate according to tainted nodes.
+def orchestrate():
+    logger.info('Getting tainted nodes list from resource-manager...')
+
+    # Read the nodes.info file as a dictionary
+    with open(file='./nodes.info', mode='r') as nodesconfig:
+        nodes_config_dict = literal_eval(nodesconfig.read())
+
+    tainted_nodes = request.json
+
+    # Take actions on K8S and Docker accordingly:
+
+    for tainted_node in tainted_nodes:
+        print(tainted_node)
+
+    # if orchestrator == 'kubernetes':
+    #     create_k8s_client(ip)
+    # # TODO: Take actions for Kubernetes
+
+    # elif orchestrator == 'docker':
+    #     client = create_docker_client(ip=ip, port=2376)
+
+    # else:
+    #     raise UnsupportedOrchestratorException(hostname, orchestrator)
+
+    return 'Taints and orchestration done'
 
     # Program execution
 if __name__ == '__main__':
