@@ -1,11 +1,10 @@
-import json
-import requests
 from ast import literal_eval
 
 from flask import Flask, request
 
 from utils.logger import set_logger
-from utils.constants import RESOURCE_LIST, PROTOCOL, API_BASE
+from utils.constants import API_BASE
+from utils.check_taints import check_previous_taints
 
 # Docker Orchestration
 from utils.orchestrate_docker import orchestrate as docker_orchestrate
@@ -26,23 +25,8 @@ class UnsupportedOrchestratorException(Exception):
         self.message = f'The Orchestrator {orchestrator} for node {hostname} is not supported'
         super().__init__(self.message)
 
-
-def check_status(url, node):
-    try:
-        requests.get(url=url)
-        return True
-
-    except requests.exceptions.ConnectionError as e:
-        logger.info(f'The connection was refused, is the node {node} alive?')
-        logger.error(e)
-        return False
-
-
-def load_config():
-    return
-
-
 # API ROUTES
+
 
 @app.route('/', methods=['GET'])
 # This route is called to check server's availability
