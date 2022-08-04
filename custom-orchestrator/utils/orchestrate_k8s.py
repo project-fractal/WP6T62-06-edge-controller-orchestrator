@@ -5,6 +5,6 @@ def create_client(ip):
     return
 
 
-def orchestrate(client):
+def orchestrate(client, previously_tainted: bool, logger):
 
     return

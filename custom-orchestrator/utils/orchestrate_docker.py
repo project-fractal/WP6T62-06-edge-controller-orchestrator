@@ -18,36 +18,43 @@ def create_client(ip, port, logger):
         logger.error(e)
 
 
-def orchestrate(client, logger):
+def orchestrate(client, previously_tainted: bool, logger):
     # TODO: Take actions for Docker
 
-    # Limit the container resources from each of the containers in the host apart from Glances
-    try:
-        container_list = client.containers.list(all=True)
+    # Check if the node was already tainted
+    if previously_tainted:
+        # If it was previously tainted, stop containters one by one
+        pass
 
-        logger.info(container_list)
+    else:
+        # If it's the first time the node gets tainted
+        # Limit the container resources from each of the containers in the host apart from Glances
+        try:
+            container_list = client.containers.list(all=True)
 
-        for cont in container_list:
-            logger.info(cont)
+            logger.info(container_list)
 
-            if 'glances' in str(cont.attrs['Args']):
-                logger.warning(
-                    'Avoiding limiting resources of the glances container')
-                pass
-            else:
+            for cont in container_list:
+                logger.info(cont)
 
-                logger.warning('Limiting resources of container ' +
-                               str(cont.attrs['Name']))
+                if 'glances' in str(cont.attrs['Args']):
+                    logger.warning(
+                        'Avoiding limiting resources of the glances container')
+                    pass
+                else:
 
-                limited_container = client.containers.get(
-                    str(cont.attrs['Id']))
-                limited_container.update(
-                    mem_limit='1g', memswap_limit='1g', cpu_period=100000, cpu_quota=50000)
+                    logger.warning('Limiting resources of container ' +
+                                   str(cont.attrs['Name']))
 
-                logger.info('Container ' +
-                            str(cont.attrs["Name"]) + ' has had its resources limited')
-    except APIError as e:
-        logger.error('Error while orchestrating Docker host: ' + e)
-        return
+                    limited_container = client.containers.get(
+                        str(cont.attrs['Id']))
+                    limited_container.update(
+                        mem_limit='1g', memswap_limit='1g', cpu_period=100000, cpu_quota=50000)
+
+                    logger.info('Container ' +
+                                str(cont.attrs["Name"]) + ' has had its resources limited')
+        except APIError as e:
+            logger.error('Error while orchestrating Docker host: ' + e)
+            return
 
     return

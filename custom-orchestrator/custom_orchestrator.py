@@ -57,29 +57,58 @@ def orchestrate():
     with open(file='./nodes.info', mode='r') as nodesconfig:
         nodes_config_dict = literal_eval(nodesconfig.read())
 
-    # TODO: Keep awareness of Tainted nodes and when untainted, remove restrictions
-    tainted_nodes = request.json
+    # Keep awareness of Tainted nodes and when untainted, remove restrictions
+    new_taints = request.json
+
+    previously_tainted_nodes, new_tainted_nodes = check_previous_taints(
+        new_taints, logger=logger)
 
     # Take actions on K8S and Docker accordingly:
 
-    for tainted_node in tainted_nodes:
+    for tainted_node in new_tainted_nodes:
         logger.info(tainted_node +
-                    ' is tainted. Applying custom orchestration...')
+                    ' is tainted for the first time. Applying custom orchestration...')
 
         if nodes_config_dict['orchestrator'][tainted_node] == 'kubernetes':
             # TODO: Take actions for Kubernetes
             k8s_client = create_k8s_client(
                 nodes_config_dict['ips'][tainted_node])
 
-            k8s_orchestrate(k8s_client)
+            k8s_orchestrate(
+                k8s_client, previously_tainted=False, logger=logger)
 
         elif nodes_config_dict['orchestrator'][tainted_node] == 'docker':
             docker_client = create_docker_client(
                 ip=nodes_config_dict['ips'][tainted_node], port=2376, logger=logger)
 
-            docker_orchestrate(docker_client, logger=logger)
+            docker_orchestrate(
+                docker_client, previously_tainted=False, logger=logger)
 
         else:
+            # TODO: Give a list of most resource consuming processes
+            raise UnsupportedOrchestratorException(
+                tainted_node, nodes_config_dict['orchestrator'][tainted_node])
+
+    for tainted_node in previously_tainted_nodes:
+        logger.info(tainted_node +
+                    ' was previously tainted. Applying more restrictive custom orchestration...')
+
+        if nodes_config_dict['orchestrator'][tainted_node] == 'kubernetes':
+            # TODO: Take actions for Kubernetes
+            k8s_client = create_k8s_client(
+                nodes_config_dict['ips'][tainted_node])
+
+            k8s_orchestrate(k8s_client, previously_tainted=True, logger=logger)
+
+        elif nodes_config_dict['orchestrator'][tainted_node] == 'docker':
+            docker_client = create_docker_client(
+                ip=nodes_config_dict['ips'][tainted_node], port=2376, logger=logger)
+
+            docker_orchestrate(
+                docker_client, previously_tainted=True, logger=logger)
+
+        else:
+            # TODO: Give a list of most resource consuming processes
             raise UnsupportedOrchestratorException(
                 tainted_node, nodes_config_dict['orchestrator'][tainted_node])
 
