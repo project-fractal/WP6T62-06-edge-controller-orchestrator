@@ -159,10 +159,10 @@ if __name__ == '__main__':
             try:
                 if node_resources:
                     orchestrator.load_nodes_info(
-                        ips=node_ips, orchestrators=node_orchestrators, resources=node_resources)
+                        ips=node_ips, orchestrator=node_orchestrators, resources=node_resources)
                 else:
                     orchestrator.load_nodes_info(
-                        ips=node_ips, orchestrators=node_orchestrators)
+                        ips=node_ips, orchestrator=node_orchestrators)
             except Exception as e:
                 logger.error(e)
                 pass
