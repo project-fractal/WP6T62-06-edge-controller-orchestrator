@@ -1,0 +1,18 @@
+- node:
+    hostname: "gimli"
+    IP: 192.168.0.83
+    port: 61208
+#    orchestrator: "docker"
+#    resources: ["cpu","mem"]
+
+# - node:
+#     hostname: "aragorn"
+#     IP: 192.168.0.111
+#     port: 61208
+#     orchestrator: "kubernetes"
+
+- custom-orchestrator:
+    hostname: "gandalf"
+    IP: 192.168.0.53
+    port: 9999
+
