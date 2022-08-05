@@ -14,7 +14,7 @@ logger = set_logger()
 
 def load_config():
     # Starting configuration
-    with open('./resource-manager/nodes.yaml', 'r') as configfile:
+    with open('./nodes.yaml', 'r') as configfile:
         try:
             logger.info('Reading configuration file nodes.yaml')
             nodeconfig = yaml.safe_load(configfile)
