@@ -14,7 +14,7 @@ logger = set_logger()
 
 def load_config():
     # Starting configuration
-    with open('./resource_manager/nodes.yaml', 'r') as configfile:
+    with open('./resource-manager/nodes.yaml', 'r') as configfile:
         try:
             logger.info('Reading configuration file nodes.yaml')
             nodeconfig = yaml.safe_load(configfile)
@@ -164,7 +164,7 @@ if __name__ == '__main__':
                     orchestrator.load_nodes_info(
                         ips=node_ips, orchestrator=node_orchestrators)
             except Exception as e:
-                logger.error(e)
+                logger.error(e.with_traceback)
                 pass
 
         else:
