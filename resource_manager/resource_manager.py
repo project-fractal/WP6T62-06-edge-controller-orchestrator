@@ -261,5 +261,6 @@ if __name__ == '__main__':
                 orchestrator.send_taints(taints)
             else:
                 logger.warning('Custom orchestrator is down...')
+        # TODO: else Give a list of most resource consuming processes
 
-        time.sleep(5)
+        time.sleep(15)

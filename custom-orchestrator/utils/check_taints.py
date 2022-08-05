@@ -16,9 +16,9 @@ def check_previous_taints(new_taints, logger):
 
     with open(file='./taints.txt', mode='w') as already_tainted:
         new_tainted_nodes = []
+        untainted_nodes = []
 
         for node in new_taints:
-
             if node in already_tainted_nodes:
                 logger.info(f'{node} was previously tainted.')
             else:
@@ -27,11 +27,11 @@ def check_previous_taints(new_taints, logger):
                 new_tainted_nodes.append(node)
 
         for node in already_tainted_nodes:
-
             if node not in new_taints:
                 logger.info(
                     f'{node} no longer tainted... Removing from tainted lists')
                 already_tainted_nodes.remove(node)
+                untainted_nodes.append(node)
 
         for i in range(len(already_tainted_nodes)):
             already_tainted.writelines(already_tainted_nodes[i] + '\n')
@@ -39,4 +39,4 @@ def check_previous_taints(new_taints, logger):
         for i in range(len(new_tainted_nodes)):
             already_tainted.writelines(new_tainted_nodes[i] + '\n')
     # At the end of the loop, return the list of previously tainted nodes and new tainted nodes to orchestrate.
-    return already_tainted_nodes, new_tainted_nodes
+    return already_tainted_nodes, new_tainted_nodes, untainted_nodes

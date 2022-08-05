@@ -18,22 +18,58 @@ def create_client(ip, port, logger):
         logger.error(e)
 
 
-def orchestrate(client, previously_tainted: bool, logger):
-    # TODO: Take actions for Docker
+def orchestrate(client, previously_tainted: bool, untainted: bool, logger):
+
+    # Get the list of containers
+    try:
+        container_list = client.containers.list(all=True)
+
+        logger.info(container_list)
+    except APIError as e:
+        logger.error('Error while orchestrating Docker host: ' + e)
+
+    # Check if the node is untainted and remove restrictions
+    if untainted:
+        # Restart all stopped containers
+        try:
+            for cont in container_list:
+                if cont.attrs['State']['Status'] == 'exited':
+                    logger.info(f'Restarting exited container: {cont}')
+                    cont.start()
+
+                elif cont.attrs['State']['Status'] == 'running':
+                    pass
+
+                else:
+                    pass
+
+            return
+        except APIError as e:
+            logger.error('Error while orchestrating Docker host: ' + e)
 
     # Check if the node was already tainted
     if previously_tainted:
         # If it was previously tainted, stop containters one by one
-        pass
+        try:
+            for cont in container_list:
+                # Check if it is glances container
+                logger.info(cont)
+
+                if 'glances' in str(cont.attrs['Args']):
+                    logger.warning(
+                        'Avoiding limiting resources of the glances container')
+                    pass
+                else:
+                    cont.stop()
+                    break
+
+        except APIError as e:
+            logger.error('Error while orchestrating Docker host:' + e)
 
     else:
         # If it's the first time the node gets tainted
         # Limit the container resources from each of the containers in the host apart from Glances
         try:
-            container_list = client.containers.list(all=True)
-
-            logger.info(container_list)
-
             for cont in container_list:
                 logger.info(cont)
 
