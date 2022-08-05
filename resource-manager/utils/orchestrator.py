@@ -21,7 +21,7 @@ class Orchestrator:
 
         URL = 'http://' + str(self.ip) + ':' + str(self.port) + RESOURCE
 
-        if kwargs['resources']:
+        if 'resources' in kwargs.keys():
             requests.post(
                 url=URL, json=kwargs)
         else:
