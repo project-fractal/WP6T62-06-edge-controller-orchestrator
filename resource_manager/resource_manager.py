@@ -221,7 +221,7 @@ if __name__ == '__main__':
                     processed_info = process_info(URL, hostname)
 
                 # Take actions based on the gathered information
-                # The actions() function is where the logic of alarms, actions to take and
+                # The apply_taints() function is where the logic of alarms, actions to take and
                 # custom orchestration is done.
                 # While infotreatment.py only parses the information into easy-handling formats,
                 # actions implements the logic on what decisions and actions to take based on the results.
@@ -231,9 +231,7 @@ if __name__ == '__main__':
                     pass
                 else:
                     try:
-
                         if hostname in node_resources.keys() and hostname in node_orchestrators.keys():
-
                             # taints is a dict of tainted nodes and respective taints {'hostname': 'taint'}
                             taints = apply_taints(
                                 hostname=hostname, resources=node_resources[hostname],
@@ -243,11 +241,22 @@ if __name__ == '__main__':
                             taints = apply_taints(
                                 hostname=hostname, resources=RESOURCE_LIST,
                                 dict_info_json=processed_info, taints=taints, logger=logger)
-
                         elif hostname not in node_orchestrators.keys():
                             # Nothing to do if node is not orchestrated
                             logger.info(
                                 f'Node {hostname} is not being orchestrated.')
+
+                            logger.warning(
+                                f'Resource consuming processes for non-orchestrated node {hostname}: \n')
+                            for process in processed_info['processlist']:
+                                if process['cpu_percent'] > 80 or process['memory_percent'] > 80:
+
+                                    logger.warning('\n' +
+                                                   f'Resource consuming process: {process["name"]} \n' +
+                                                   f'CPU % usage: {process["cpu_percent"]} \n' +
+                                                   f'MEM % usage: {process["memory_percent"]} \n' +
+                                                   f'Command: {process["cmdline"]} \n' +
+                                                   f'User running the process: {process["username"]}')
 
                         logger.info('Tainted nodes: ' + str(taints))
 
@@ -261,6 +270,5 @@ if __name__ == '__main__':
                 orchestrator.send_taints(taints)
             else:
                 logger.warning('Custom orchestrator is down...')
-        # TODO: else Give a list of most resource consuming processes
 
         time.sleep(15)
