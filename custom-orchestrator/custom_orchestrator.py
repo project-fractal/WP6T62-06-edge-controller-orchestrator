@@ -88,7 +88,7 @@ def orchestrate():
                 nodes_config_dict['ips'][tainted_node])
 
             k8s_orchestrate(
-                k8s_client, previously_tainted=False, untainted=False, logger=logger)
+                k8s_client, tainted_node, previously_tainted=False, untainted=False, logger=logger)
 
         elif nodes_config_dict['orchestrator'][tainted_node] == 'docker':
             docker_client = create_docker_client(
@@ -111,7 +111,7 @@ def orchestrate():
             k8s_client = create_k8s_client(
                 nodes_config_dict['ips'][tainted_node])
 
-            k8s_orchestrate(k8s_client, previously_tainted=True,
+            k8s_orchestrate(k8s_client, tainted_node, previously_tainted=True,
                             untainted=False, logger=logger)
 
         elif nodes_config_dict['orchestrator'][tainted_node] == 'docker':
@@ -134,7 +134,7 @@ def orchestrate():
             k8s_client = create_k8s_client(
                 nodes_config_dict['ips'][untainted_node])
 
-            k8s_orchestrate(k8s_client, previously_tainted=False,
+            k8s_orchestrate(k8s_client, untainted_node, previously_tainted=False,
                             untainted=True, logger=logger)
 
         elif nodes_config_dict['orchestrator'][untainted_node] == 'docker':
