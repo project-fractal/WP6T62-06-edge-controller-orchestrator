@@ -26,5 +26,5 @@ def limit_node_resources(client, deployment_ns):
     resource_quota.metadata = kclient.V1ObjectMeta(namespace=deployment_ns, name=f"quota-{deployment_ns}")
     client.create_namespaced_resource_quota(deployment_ns, body=resource_quota)
 
-def delete_node_resource_limitations(client, deployment_ns):
+def remove_node_resource_limitations(client, deployment_ns):
     client.delete_namespaced_resource_quota(name=f"quota-{deployment_ns}", namespace=deployment_ns)
