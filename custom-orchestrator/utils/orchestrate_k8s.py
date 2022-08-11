@@ -1,6 +1,6 @@
 from kubernetes import config, client as kclient
 from kubernetes.client.exceptions import ApiException
-from aux_func import taint_node, untaint_node, scale_replicas
+from aux_func import taint_node, untaint_node, scale_replicas, limit_node_resources, remove_node_resource_limitations
 
 # TODO: check that this function works
 def create_client(logger):
@@ -27,6 +27,7 @@ def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger)
     try:
         # get current deployments
         dplmnt_list = client.list_deployment_for_all_namespaces()
+
         logger.info(dplmnt_list)
     except ApiException as e:
         logger.error(e)
@@ -34,6 +35,7 @@ def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger)
     if untainted:
         try:
             # first, set the node as untainted
+            logger.info(f"Untainting node {node}")
             untaint_node(client, node)
             for deploy in dplmnt_list.items:
                 # check if any replica has to be restored
@@ -42,15 +44,17 @@ def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger)
                     # get deployment data
                     name = deploy.to_dict().get("metadata").get("name")
                     ns = deploy.to_dict().get("metadata").get("namespace")
+                    # remove resource limitations
+                    logger.info("Removing namespace resource limitations")
+                    remove_node_resource_limitations(client, ns)
                     logger.info(f"Restoring deployment: {name} in namespace {ns}")
-                    scale_replicas(client, name, ns, 1) # TODO: get desired replicas
-                # else:
-                #     pass
+                    scale_replicas(client, name, ns, 1) # TODO: get desired replicas -> check deployment.txt file
+
         except ApiException as e:
             logger.error(e)
 
-    if previously_tainted:
-        # relanzar deployments con etiquetas nuevas
+    if previously_tainted: # node has already been tainted -> resources have been limited -> scale down deployments
+
         for deploy in dplmnt_list.items:
             name = deploy.to_dict().get("metadata").get("name")
             if 'glances' in name:
@@ -63,7 +67,14 @@ def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger)
                 scale_replicas(client, name, ns, 0)
     else:
         # set node as tainted to avoid creating more deployments
-        # TODO: research pod/namespace/deployment/node resource limitations in kubernetes
         taint_node(client, node)
+        # limit the resources for each namespace
+        restricted_ns = []  # list to track which namespaces have limited resources
+        for deploy in dplmnt_list.items:
+            ns = deploy.to_dict().get("metadata").get("namespace")
+            if ns not in restricted_ns: # check if resources of ns have already been limited -> may be unnecessary
+                limit_node_resources(client, ns)
+                restricted_ns.append(ns)
+
 
     return
