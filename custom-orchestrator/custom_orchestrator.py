@@ -5,7 +5,7 @@ from flask import Flask, request
 from utils.logger import set_logger
 from utils.constants import API_BASE
 from utils.check_taints import check_previous_taints
-
+from utils.deployment_status import save_initial_deployment_status
 # Docker Orchestration
 from utils.orchestrate_docker import orchestrate as docker_orchestrate
 from utils.orchestrate_docker import create_client as create_docker_client
@@ -55,7 +55,12 @@ def orchestrate():
     # Read the nodes.info file as a dictionary
     with open(file='./nodes.info', mode='r') as nodesconfig:
         nodes_config_dict = literal_eval(nodesconfig.read())
-
+        # TODO: check this -> all deployments are stored in a file when first executed
+        # gets every deployment in every node -> how to control to which node a deployment belongs to?
+        k8s_client = create_k8s_client(logger)
+        # Save initial status of the cluster for further replica number modification and restoring
+        # initial_deployments = k8s_client.list_deployment_for_all_namespaces()
+        # deployment_original_state = save_initial_deployment_status(initial_deployments, logger)
     # Keep awareness of Tainted nodes and when untainted, remove restrictions
     new_taints = request.json
 
