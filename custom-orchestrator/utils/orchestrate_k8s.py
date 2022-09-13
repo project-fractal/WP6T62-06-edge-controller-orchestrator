@@ -2,14 +2,17 @@ from kubernetes import config, client as kclient
 from kubernetes.client.exceptions import ApiException
 from aux_func import taint_node, untaint_node, scale_replicas, limit_node_resources, remove_node_resource_limitations
 
-# TODO: check that this function works
+"""
+This function creates the k8s client needed to retrieve and modify k8s cluster resource information
+It is intended to be executed from a pod, therefore the necessary clusterroles and permissions must be defined
+Returns the client object from kubernetes library after loading the cluster configuration
+With this client, it is possible to summon the needed functions from classes CoreV1Api and AppsV1Api
+"""
 def create_client(logger):
     try:
         # load the cluster configuration
-        config.load_incluster_config() # may change to use apikey config
-        # k8s_client = kclient.CoreV1Api()
-        k8s_apps = kclient.AppsV1Api()
-        return k8s_apps
+        config.load_incluster_config()
+        return kclient
     except kclient.exceptions.ApiException as e:
         logger.error(e)
     return
