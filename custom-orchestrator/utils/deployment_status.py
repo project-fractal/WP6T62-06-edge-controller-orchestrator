@@ -18,12 +18,29 @@ def save_initial_deployment_status(deployment_list, logger):
 
 
     with open(file="./deployments.txt", mode='w') as deployments:
-        for dep in deployment_list.items:
-            dep_name = deployment_list.get("metadata").get("name")
-            dep_ns = deployment_list.get("metadata").get("namespace")
-            dep_replicas = deployment_list.get("status").get("replicas")
-            dep_detail = dep_name + "; " + dep_ns + "; " + dep_replicas + "\n"
+        # add header for later reading
+        deployments.write("name; namespace; replicas\n")
+        for dep in dep.to_dict().items:
+            dep_name = dep.to_dict().get("metadata").get("name")
+            dep_ns = dep.to_dict().get("metadata").get("namespace")
+            dep_replicas = dep.to_dict().get("status").get("replicas")
+            dep_detail = dep_name + "; " + dep_ns + "; " + str(dep_replicas) + "\n"
             deployments.write(dep_detail)
             deployed.append(dep_detail)
 
-    return deployed
+    logger.info("Deployment status saved")
+
+
+# function to retrieve number of replicas of known deployment given name and namespace
+
+def get_replica_num(name, namespace, logger):
+    deployment_data = name + "; " + namespace + ";"
+
+    with open("./deployments.txt", mode='r') as dplmnt_fp:
+        lines = dplmnt_fp.lines()
+        for line in lines:
+            # return the corresponding number of replicas once found
+            if line.find(deployment_data) != -1: 
+                nReplicas = int(line.split("; ")[2][0]) 
+                return nReplicas
+        

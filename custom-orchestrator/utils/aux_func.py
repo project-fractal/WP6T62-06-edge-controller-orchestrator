@@ -1,5 +1,4 @@
-# import kubernetes.client as kclient
-# auxiliary functions to set nodes as tainted or untainted
+# auxiliary functions to set nodes as tainted or untainted and modify resource quotas within a namespace
 
 # taint/untaint nodes using the patch_node function
 # source: https://stackoverflow.com/questions/68174233/how-to-delete-a-node-taint-using-pythons-kubernetes-library
@@ -17,7 +16,7 @@ def scale_replicas(client, name, ns, replicaNumber):
     client.AppsV1Api().patch_namespaced_deployment_scale(name, ns, patch_body)
 
 
-# functions to add/remove resource quotas in a namespace
+# functions to modify resource quotas in a namespace
 
 def limit_node_resources(client, deployment_ns):
     resource_quota = client.V1ResourceQuota(

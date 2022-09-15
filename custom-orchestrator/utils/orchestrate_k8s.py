@@ -1,7 +1,7 @@
 from kubernetes import config, client as kclient
 from kubernetes.client.exceptions import ApiException
 from aux_func import taint_node, untaint_node, scale_replicas, limit_node_resources, remove_node_resource_limitations
-
+from deployment_status import save_initial_deployment_status, get_replica_num
 """
 This function creates the k8s client needed to retrieve and modify k8s cluster resource information
 It is intended to be executed from a pod, therefore the necessary clusterroles and permissions must be defined
@@ -12,6 +12,11 @@ def create_client(logger):
     try:
         # load the cluster configuration
         config.load_incluster_config()
+
+        # save initial deployment status
+        save_initial_deployment_status()
+
+        # return kclient object
         return kclient
     except kclient.exceptions.ApiException as e:
         logger.error(e)
@@ -29,8 +34,8 @@ TODO:
 def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger):
     try:
         # get current deployments
-        dplmnt_list = client.list_deployment_for_all_namespaces()
-
+        dplmnt_list = client.AppsV1Api.list_deployment_for_all_namespaces()
+        
         logger.info(dplmnt_list)
     except ApiException as e:
         logger.error(e)
@@ -51,7 +56,8 @@ def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger)
                     logger.info("Removing namespace resource limitations")
                     remove_node_resource_limitations(client, ns)
                     logger.info(f"Restoring deployment: {name} in namespace {ns}")
-                    scale_replicas(client, name, ns, 1) # TODO: get desired replicas -> check deployment.txt file
+                    nReplicas = get_replica_num(name, ns)
+                    scale_replicas(client, name, ns, nReplicas)
 
         except ApiException as e:
             logger.error(e)
@@ -66,7 +72,7 @@ def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger)
                 ns = deploy.to_dict().get("metadata").get("namespace")
                 logger.info(f"Scaling down deployment: {name} in namespace {ns}")
                 body_rep = {"spec": {"replicas": 0}}
-                # TODO: decrease number of replicas by one or set directly to 0?
+                # decrease number of replicas to 0
                 scale_replicas(client, name, ns, 0)
     else:
         # set node as tainted to avoid creating more deployments
