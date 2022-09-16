@@ -4,7 +4,8 @@ from aux_func import taint_node, untaint_node, scale_replicas, limit_node_resour
 from deployment_status import save_initial_deployment_status, get_replica_num
 """
 This function creates the k8s client needed to retrieve and modify k8s cluster resource information
-It is intended to be executed from a pod, therefore the necessary clusterroles and permissions must be defined
+It is intended to be executed from a pod, therefore there are some settings that must be defined beforehand.
+More details can be found in "permissions.yaml".
 Returns the client object from kubernetes library after loading the cluster configuration
 With this client, it is possible to summon the needed functions from classes CoreV1Api and AppsV1Api
 """

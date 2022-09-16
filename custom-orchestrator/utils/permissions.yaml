@@ -1,0 +1,61 @@
+#This file contains the necessary components to set up the configurations needed for the k8s orchestrator:
+#
+# - A service account --> to be associated with the orchestrator pod
+# - A cluster role --> to define the apiGroups, resources and actions that can be applied
+# - A cluster role binding --> to bind the previous elements
+# 
+# - YAML definition -- params related to metadata should be edited to match the desired settings. 
+# Resources/verbs lists may not be complete, further testing is required
+
+# sa
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-api-sa
+  # associated namespace may be added here
+---
+
+# ClusterRole
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-api-clusterrole
+  # associated namespace may be added here
+rules:
+  - apiGroups: ["apps", ""]
+    resources: 
+      - "pods"
+      - "deployments"
+      - "deployments/scale"
+      - "nodes"
+      - "replicasets"
+      - "replicasets/scale"
+      - "services"
+    verbs:
+      - get
+      - scale
+      - list
+      - delete
+      - create
+      - patch
+
+---
+
+# ClusterRoleBinding
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+
+metadata:
+  name: k8s-api-clusterrolebinding
+  # associated namespace may be added here
+# these parameters must match the names of the sa and the clusterrole defined above
+subjects:
+  - kind: ServiceAccount
+    name: k8s-api-sa
+    # associated namespace may be added here
+roleRef:
+  kind: ClusterRole
+  name: k8s-api-clusterrole
+  apiGroup: rbac.authorization.k8s.io/v1
