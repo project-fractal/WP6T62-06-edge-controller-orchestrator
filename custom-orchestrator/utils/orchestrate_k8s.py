@@ -2,6 +2,8 @@ from kubernetes import config, client as kclient
 from kubernetes.client.exceptions import ApiException
 from aux_func import taint_node, untaint_node, scale_replicas, limit_node_resources, remove_node_resource_limitations
 from deployment_status import save_initial_deployment_status, get_replica_num
+
+
 """
 This function creates the k8s client needed to retrieve and modify k8s cluster resource information
 It is intended to be executed from a pod, therefore there are some settings that must be defined beforehand.
@@ -25,12 +27,15 @@ def create_client(logger):
 
 
 """
-TODO:
-# 1. find desiredReplicas for each deployment to restore all of the replicas once the node is untainted
-# 1.1 the desired replicas parameter can be obtained through the replicaset itself:
-# --> how to find the corresponding replicaset for each deployment through the client?
-# 2. limit node/pod/deployment?? resources before tainting it
-#
+Main function to orchestrate a K8s cluster. After obtaining the current deployments,
+starts to check whether a node needs to be tainted, untainted or has been previously tainted 
+in order to apply changes in the cluster to solve those situations. 
+Takes the kclient object, a given node and its status (tainted, untainted) as input parameters 
+
+The changes applied depend on the status of the node:
+* If the node is flagged as untainted -> untaint that node and restore the deployments
+* If the node is flagged as tainted -> mark as tainted and limit the resources
+* If the node is flagged as previously tainted -> scale down the deployments within the node
 """
 def orchestrate(client, node, previously_tainted: bool, untainted: bool, logger):
     try:

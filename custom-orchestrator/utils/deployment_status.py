@@ -1,11 +1,15 @@
-import kubernetes
+""" 
+This script contains the functions in charge of saving the initial status of the deployments in a K8s cluster,
+so that it is possible to restore any given deployment to the original state after any modification in the replicanumber
+has been made
+"""
 
+
+"""
+This function saves the initial status of each deployment. Creates a csv file containing the name, namespace and the replica number
+separated by ";" -> deploy_name ; namespace ; replica_number \n
+"""
 def save_initial_deployment_status(deployment_list, logger):
-    # this script intends to save the initial state of every deployment
-    # made in the kubernetes cluster, so that when the orchestrator decides to
-    # scale or modify the deployment, it is possible to restore it to its original
-    # state once the resources have been freed
-
     # check if file exists
     try:
         with open(file="./deployments.txt", mode='r') as deployments:
@@ -31,7 +35,10 @@ def save_initial_deployment_status(deployment_list, logger):
     logger.info("Deployment status saved")
 
 
-# function to retrieve number of replicas of known deployment given name and namespace
+"""
+This function reads the file where the deployment information has been saved
+and returns the number of replicas of a given deployment name and its namespace
+"""
 
 def get_replica_num(name, namespace, logger):
     deployment_data = name + "; " + namespace + ";"
