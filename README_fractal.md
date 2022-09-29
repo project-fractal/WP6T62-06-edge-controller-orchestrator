@@ -137,11 +137,41 @@ Once deployed, this container exposes a REST API which will be reached by the re
 
 ## Usage
 
+Once the container images have been created and the functioning of the independent containers has been checked, they must be deployed into the nodes in a specific order.
 
-## Deployment
+### Deployment
+
+#### #1 metrics-exporter
+
+First, the **metrics-exporter** container must be deployed on each of the nodes to be monitored, either master or worker nodes, by running the above described `run.sh` script. To check that the container is working properly, you can go to `http://<NODE_IP>:61208` or execute the command:
+
+```
+curl http://<NODE_IP>:61208/api/3/cpu
+```
+
+which should display the cpu usage information of your node.
+
+#### #2 custom-orchestrators
+
+Deploy the **custom-orchestrator** container on the node you plan to be the custom orchestrator. This node should have access and enough permissions to perform kubectl operations in case it is a kubernetes environment, or send requests to the Docker daemons of the rest of the hosts (which should be exposed following this guidelines: [Docker Daemon](https://docs.docker.com/config/daemon/))
+
+#### #3 resource-manager
+
+Fill in the information in the `nodes.yaml` file before starting up this container. This information will be used by the resource-manager and the custom-orchestrator to be able to communicate with the nodes and send the orchestration and resource managing communications.
+
+Deploy the **resource-manager** container on the node which is going to perform the orchestration strategies (not required to be the same node as the custom-orchestrator).
+
+Once all the containers have been deployed, the resource-manager and the custom-orchestator containers logs can be accessed to check that the resource-manager has successfully connected to each of the managed nodes and also recognized the orchestrating node as the custom-orchestrator.
 
 
+### Stress a node
+
+These orchestration mechanisms and resource management happen on the background, so in systems which are working normally, nothing should happen.
+
+You can try stressing your nodes to increase the CPU usage while monitoring the **resource-manager** logs to see what operations are happening into the node. This will work better if the stressed node is part of a K8S cluster or has its Docker daemon exposed with several containers running.
+
+We recommend to use the `yes` command in the node to be stressed, but be careful to cancel this operation once you have checked that the resource manager and the orchestration is being executed as expected.
 
 ## Additional Documentation and Acknowledgments
 
-* etc...
+* Developed by ZYLK
