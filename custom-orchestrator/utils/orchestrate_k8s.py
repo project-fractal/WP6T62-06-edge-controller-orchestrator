@@ -1,7 +1,7 @@
 from kubernetes import config, client as kclient
 from kubernetes.client.exceptions import ApiException
-from aux_func import taint_node, untaint_node, scale_replicas, limit_node_resources, remove_node_resource_limitations
-from deployment_status import save_initial_deployment_status, get_replica_num
+from utils.aux_func import taint_node, untaint_node, scale_replicas, limit_node_resources, remove_node_resource_limitations
+from utils.deployment_status import save_initial_deployment_status, get_replica_num
 
 
 """
