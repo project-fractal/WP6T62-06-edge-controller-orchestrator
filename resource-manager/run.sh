@@ -1,2 +1,2 @@
 #! /bin/bash
-docker run -d --network=host resource-manager
+docker run --name resource-manager -d --network=host resource-manager

@@ -57,7 +57,7 @@ def orchestrate():
         nodes_config_dict = literal_eval(nodesconfig.read())
         # TODO: check this -> all deployments are stored in a file when first executed
         # gets every deployment in every node -> how to control to which node a deployment belongs to?
-        k8s_client = create_k8s_client(logger)
+#        k8s_client = create_k8s_client(logger)
         # Save initial status of the cluster for further replica number modification and restoring
         # initial_deployments = k8s_client.list_deployment_for_all_namespaces()
         # deployment_original_state = save_initial_deployment_status(initial_deployments, logger)

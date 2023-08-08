@@ -1,2 +1,2 @@
 #! /bin/bash
-docker run -d --network=host --pid=host --hostname metricsexporter metrics-exporter
+docker run --name metrics-exporter -d --network=host --pid=host --hostname metricsexporter metrics-exporter

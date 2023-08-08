@@ -1,2 +1,2 @@
 #! /bin/bash
-docker run -d --network=host custom-orchestrator
+docker run --name custom-orchestrator -d --network=host custom-orchestrator
